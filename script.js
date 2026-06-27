@@ -1,8 +1,12 @@
 document.addEventListener('DOMContentLoaded', () => {
     
     // --- 1. STATE MANAGEMENT (LocalStorage) ---
-    let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
-    let userProfile = JSON.parse(localStorage.getItem('userProfile')) || { name: 'Alex Thompson', currency: '$' };
+    // Fetch the logged-in user saved from login.html
+    let userProfile = JSON.parse(localStorage.getItem('user')) || { username: 'Guest', currency: '$' };
+    
+    // Create a unique storage key for THIS specific user
+    let storageKey = `transactions_${userProfile.username}`;
+    let transactions = JSON.parse(localStorage.getItem(storageKey)) || [];
     let myChart = null;
 
     // --- 2. DOM ELEMENTS ---
@@ -11,6 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const incomeEl = document.getElementById('displayIncome');
     const expenseEl = document.getElementById('displayExpense');
     const countEl = document.getElementById('displayCount');
+    const typeFilter = document.getElementById('typeFilter');
     
     // Settings Elements
     const topbarName = document.getElementById('topbarName');
@@ -26,12 +31,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalTitle = document.getElementById('modalTitle');
     const searchInput = document.getElementById('searchInput');
 
+    // Logout Button
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+            localStorage.removeItem('user'); // Clear the session
+            window.location.replace('login.html'); // Redirect to login
+        });
+    }
+
     // --- 3. INITIALIZATION ---
     function initProfile() {
-        // Apply profile to UI
-        topbarName.innerText = userProfile.name;
-        settingNameInput.value = userProfile.name;
-        settingCurrencyInput.value = userProfile.currency;
+        // Apply profile to UI using username from the auth object
+        topbarName.innerText = userProfile.username;
+        settingNameInput.value = userProfile.username;
+        settingCurrencyInput.value = userProfile.currency || '$';
     }
     initProfile();
 
@@ -43,7 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         let totalIncome = 0;
         let totalExpense = 0;
-        const cur = userProfile.currency;
+        const cur = userProfile.currency || '$';
 
         dataToRender.forEach(tx => {
             if (tx.type === 'income') {
@@ -76,7 +90,8 @@ document.addEventListener('DOMContentLoaded', () => {
         expenseEl.innerText = `${cur}${totalExpense.toFixed(2)}`;
         countEl.innerText = dataToRender.length;
 
-        localStorage.setItem('transactions', JSON.stringify(transactions));
+        // Save to the USER-SPECIFIC key
+        localStorage.setItem(storageKey, JSON.stringify(transactions));
         updateChart(totalIncome, totalExpense);
     }
 
@@ -131,14 +146,28 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- 5. SETTINGS FORM LOGIC ---
     settingsForm.addEventListener('submit', (e) => {
         e.preventDefault();
+        
+        const newName = settingNameInput.value;
+        const newCurrency = settingCurrencyInput.value;
+        
+        // If the user changes their name, we need to migrate their data to the new key
+        if (newName !== userProfile.username) {
+            const newStorageKey = `transactions_${newName}`;
+            localStorage.setItem(newStorageKey, JSON.stringify(transactions));
+            localStorage.removeItem(storageKey); // Clean up old data
+            storageKey = newStorageKey; // Update active key
+        }
+
         userProfile = {
-            name: settingNameInput.value,
-            currency: settingCurrencyInput.value
+            username: newName,
+            currency: newCurrency
         };
-        localStorage.setItem('userProfile', JSON.stringify(userProfile));
+        
+        // Save back to the 'user' key so authentication state retains the updated info
+        localStorage.setItem('user', JSON.stringify(userProfile)); 
         
         initProfile(); // Update header
-        updateUI();    // Redraw table and cards with new currency
+        updateUI();    // Redraw table and cards
         alert('Settings saved successfully!');
     });
 
@@ -155,15 +184,6 @@ document.addEventListener('DOMContentLoaded', () => {
     addBtn.addEventListener('click', openModal);
     closeBtn.addEventListener('click', closeModal);
     window.addEventListener('click', (e) => { if(e.target === modal) closeModal(); });
-
-    searchInput.addEventListener('input', (e) => {
-        const term = e.target.value.toLowerCase();
-        const filtered = transactions.filter(tx => 
-            tx.description.toLowerCase().includes(term) || 
-            tx.category.toLowerCase().includes(term)
-        );
-        updateUI(filtered);
-    });
 
     document.getElementById('resetDataBtn').addEventListener('click', () => {
         if(confirm('WARNING: This will delete all your transaction data permanently!')) {
@@ -221,33 +241,24 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    
-    // Initial Render
-    updateUI();
-
+    // --- 9. FILTERS ---
     function applyFilters() {
         const term = searchInput.value.toLowerCase();
         const filterType = typeFilter.value; // 'all', 'income', or 'expense'
 
         const filtered = transactions.filter(tx => {
-            // Check if it matches the text search
             const matchesSearch = tx.description.toLowerCase().includes(term) || 
                                   tx.category.toLowerCase().includes(term);
-            
-            // Check if it matches the dropdown filter
             const matchesType = (filterType === 'all') || (tx.type === filterType);
-            
-            // Only show transactions that pass BOTH checks
             return matchesSearch && matchesType;
         });
         
         updateUI(filtered);
     }
-    searchInput.addEventListener('input', applyFilters);
     
-    // Listen for changes in the dropdown
+    searchInput.addEventListener('input', applyFilters);
     typeFilter.addEventListener('change', applyFilters);
 
-    
+    // Initial Render
+    updateUI();
 });
-

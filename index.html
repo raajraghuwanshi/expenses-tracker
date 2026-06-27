@@ -5,6 +5,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FinTrack Pro - Functional</title>
+    
+    <script src="auth.js"></script>
+    <script>
+        // true = this is a protected page
+        checkAuth(true);
+    </script>
+
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -36,12 +43,16 @@
         <main class="main-content">
             <header class="topbar">
 
-                <div class="user-actions">
+                <div class="user-actions" style="display: flex; align-items: center;">
                     <div class="user-profile">
                         <div class="user-info">
                             <span class="name" id="topbarName">----</span>
                         </div>
                     </div>
+                    
+                    <button id="logoutBtn" style="margin-left: 20px; padding: 8px 16px; border: 1px solid #ccc; border-radius: 6px; background: transparent; cursor: pointer; display: flex; align-items: center; gap: 8px; font-family: inherit; font-weight: 500;">
+                        <i class="fa-solid fa-right-from-bracket"></i> Logout
+                    </button>
                 </div>
             </header>
 
