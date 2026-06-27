@@ -37,14 +37,21 @@
     </div>
 
     <script>
-        document.getElementById('registerForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const username = document.getElementById('regUsername').value;
-            // Save dummy user to localStorage to instantly log them in
-            localStorage.setItem('user', JSON.stringify({ username: username, currency: '$' }));
-            // Redirect to dashboard
-            window.location.replace('index.html');
-        });
-    </script>
+    document.getElementById('registerForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const username = document.getElementById('regUsername').value;
+        const password = document.getElementById('regPassword').value;
+
+        // Use the new function from auth.js
+        const attempt = registerUser(username, password, '$');
+
+        if (attempt.success) {
+            alert(attempt.message);
+            window.location.href = 'login.html'; // Send them to login after registering
+        } else {
+            alert(attempt.message); // Shows "Username already exists"
+        }
+    });
+</script>
 </body>
 </html>
